@@ -4,6 +4,9 @@
 
 - Use the marshmallow library to deserialize an input dictionary to a Python
   class instance.
+- Filter fields as `load_only` or `dump_only`.
+- Define custom `function` and `method` fields to compute values during
+  serialization.
 
 ---
 
@@ -399,6 +402,176 @@ $ python lib/load_only_dump_only.py
 '{"name": "Lua", "created_at": "2023-11-15T07:30:30.660156"}'
 ```
 
+---
+
+---
+
+## Custom Fields
+
+You can create a custom field beyond the builtin field types. This is often done
+during serialization to compute a value from other fields. We will look at two
+options for creating a custom field (1) defining a `function` field, and (2)
+defining a `method` field.
+
+Consider the code in `lib/custom_field.py`. A cat has fields `name`, `dob`, and
+`favorite_toys`.
+
+```py
+# lib/custom_field.py
+
+from marshmallow import Schema, fields, post_load
+from datetime import date
+from pprint import pprint
+
+# model
+
+class Cat:
+    def __init__(self, name, dob, favorite_toys = []):
+        self.name = name
+        self.dob = dob
+        self.favorite_toys = favorite_toys
+
+# schema
+
+class CatSchema(Schema):
+    name = fields.Str(required=True, error_messages={"required": "Name is required."})
+    dob = fields.Date(format="%Y-%m-%d")
+    favorite_toys = fields.List(fields.Str())
+
+    @post_load
+    def make_cat(self, data, **kwargs):
+        return Cat(**data)
+
+schema = CatSchema()
+
+#deserialize
+cat_1 = schema.load({"name": "Meowie", "dob": "2020-11-28", "favorite_toys": ["ball", "squeaky mouse"]})
+cat_2 = schema.load({"name": "Whiskers", "dob": "2015-4-15", "favorite_toys": []})
+
+#serialize
+pprint(schema.dump(cat_1))
+# => {'age': 2,
+# =>  'dob': '2020-11-28',
+# =>  'favorite_toys': ['ball', 'squeaky mouse']}
+
+pprint(schema.dump(cat_2))
+# => {'age': 8,
+# => 'dob': '2015-04-15',
+# => 'favorite_toys': []}
+```
+
+Running the code produces the expected output:
+
+```console
+{'dob': '2020-11-28',
+ 'favorite_toys': ['ball', 'squeaky mouse'],
+ 'name': 'Meowie'}
+{'dob': '2015-04-15', 'favorite_toys': [], 'name': 'Whiskers'}
+```
+
+Suppose we would like to include in the serialized output two more fields:
+
+- `likes_toys` : a boolean that is true if the list of favorite toys is not
+  empty
+- `age` : an integer calculated using the date of birth and the current date.
+
+These fields will not be included during loading, since they can be calculated
+from the other fields. While we could update the model class to calculate them,
+we can also just update the schema to compute them during serialization.
+
+We can use define `likes_toys` using the class `fields.Function` as shown below.
+We pass a callable from which to compute the value. The function must take a
+single argument `obj` which is the object to be serialized.
+
+```py
+likes_toys = fields.Function(lambda obj : len(obj.favorite_toys) > 0, dump_only = True)
+```
+
+The calculation for the `age` field doesn't necessarily work as a simple lambda
+expression, so we'll implement that field using the class `fields.Method` as
+shown:
+
+```py
+    age = fields.Method("calculate_age", dump_only = True)
+
+    def calculate_age(self, obj):
+        today = date.today()
+        return today.year - obj.dob.year - ((today.month, today.day) < (obj.dob.month, obj.dob.day))
+
+```
+
+Update the code to add the `likes_toys` function and `age` method fields to the
+schema:
+
+```py
+# lib/custom_field.py
+
+from marshmallow import Schema, fields, post_load
+from datetime import date
+from pprint import pprint
+
+# model
+
+class Cat:
+    def __init__(self, name, dob, favorite_toys = []):
+        self.name = name
+        self.dob = dob
+        self.favorite_toys = favorite_toys
+
+# schema
+
+class CatSchema(Schema):
+    name = fields.Str(required=True, error_messages={"required": "Name is required."})
+    dob = fields.Date(format="%Y-%m-%d")
+    favorite_toys = fields.List(fields.Str())
+    likes_toys = fields.Function(lambda obj : len(obj.favorite_toys) > 0, dump_only = True)
+    age = fields.Method("calculate_age", dump_only = True)
+
+    def calculate_age(self, obj):
+        today = date.today()
+        return today.year - obj.dob.year - ((today.month, today.day) < (obj.dob.month, obj.dob.day))
+
+    @post_load
+    def make_cat(self, data, **kwargs):
+        return Cat(**data)
+
+schema = CatSchema()
+
+#deserialize
+cat_1 = schema.load({"name": "Meowie", "dob": "2020-11-28", "favorite_toys": ["ball", "squeaky mouse"]})
+cat_2 = schema.load({"name": "Whiskers", "dob": "2015-4-15", "favorite_toys": []})
+
+#serialize
+pprint(schema.dump(cat_1))
+# => {'age': 2,
+# =>  'dob': '2020-11-28',
+# =>  'favorite_toys': ['ball', 'squeaky mouse'],
+# =>  'likes_toys': True,
+# =>  'name': 'Meowie'}
+
+pprint(schema.dump(cat_2))
+# => {'age': 8,
+# => 'dob': '2015-04-15',
+# => 'favorite_toys': [],
+# => 'likes_toys': False,
+# => 'name': 'Whiskers'}
+```
+
+Now we see `age` and `likes_toys` included in the serialized output:
+
+```console
+{'age': 2,
+ 'dob': '2020-11-28',
+ 'favorite_toys': ['ball', 'squeaky mouse'],
+ 'likes_toys': True,
+ 'name': 'Meowie'}
+{'age': 8,
+ 'dob': '2015-04-15',
+ 'favorite_toys': [],
+ 'likes_toys': False,
+ 'name': 'Whiskers'}
+```
+
 ## Conclusion
 
 This lesson has covered quite a few concepts involving deserialization:
@@ -417,6 +590,8 @@ This lesson has covered quite a few concepts involving deserialization:
   indicates the field should be serialized but not used during deserialization.
 - By default, a field is defined as `load_only=False` and `dump_only=False`,
   meaning it will be used for both serialization and deserialization.
+- Custom fields can be created using `fields.Function` and `fields.Method`
+  types.
 
 ## Solution Code
 
@@ -564,6 +739,60 @@ user =  user_schema.load( user_data  )
 
 pprint(user_schema.dumps(user))                      # password is load_only
 # => '{"name": "Lua", "created_at": "2023-11-11T10:56:55.898190"}'
+```
+
+```py
+# lib/custom_field.py
+
+from marshmallow import Schema, fields, post_load
+from datetime import date
+from pprint import pprint
+
+# model
+
+class Cat:
+    def __init__(self, name, dob, favorite_toys = []):
+        self.name = name
+        self.dob = dob
+        self.favorite_toys = favorite_toys
+
+# schema
+
+class CatSchema(Schema):
+    name = fields.Str(required=True, error_messages={"required": "Name is required."})
+    dob = fields.Date(format="%Y-%m-%d")
+    favorite_toys = fields.List(fields.Str())
+    likes_toys = fields.Function(lambda obj : len(obj.favorite_toys) > 0, dump_only = True)
+    age = fields.Method("calculate_age", dump_only = True)
+
+    def calculate_age(self, obj):
+        today = date.today()
+        return today.year - obj.dob.year - ((today.month, today.day) < (obj.dob.month, obj.dob.day))
+
+    @post_load
+    def make_cat(self, data, **kwargs):
+        return Cat(**data)
+
+schema = CatSchema()
+
+#deserialize
+cat_1 = schema.load({"name": "Meowie", "dob": "2020-11-28", "favorite_toys": ["ball", "squeaky mouse"]})
+cat_2 = schema.load({"name": "Whiskers", "dob": "2015-4-15", "favorite_toys": []})
+
+#serialize
+pprint(schema.dump(cat_1))
+# => {'age': 2,
+# =>  'dob': '2020-11-28',
+# =>  'favorite_toys': ['ball', 'squeaky mouse'],
+# =>  'likes_toys': True,
+# =>  'name': 'Meowie'}
+
+pprint(schema.dump(cat_2))
+# => {'age': 8,
+# => 'dob': '2015-04-15',
+# => 'favorite_toys': [],
+# => 'likes_toys': False,
+# => 'name': 'Whiskers'}
 ```
 
 ---
