@@ -222,7 +222,7 @@ result_4 = hamster_schema_many.loads(hamsters)
 print(type(result_4))  # => <class 'list'>
 pprint(result_4)       # list of dictionaries
 # => [{'breed': 'Turkish', 'dob': datetime.date(2009, 6, 3),'name': 'Honey'},
-# =>  {'breed': 'White White', 'dob': datetime.date(2022, 12, 31), 'name': 'Squeaky'}]
+# =>  {'breed': 'Winter White', 'dob': datetime.date(2022, 12, 31), 'name': 'Squeaky'}]
 ```
 
 #### Step 3: Deserializing to objects (post-load)
@@ -667,7 +667,7 @@ result_4 = hamster_schema_many.loads(hamsters)
 print(type(result_4))  # => <class 'list'>
 pprint(result_4)       # list of dictionaries
 # => [{'breed': 'Turkish', 'dob': datetime.date(2009, 6, 3),'name': 'Honey'},
-# =>  {'breed': 'White White', 'dob': datetime.date(2022, 12, 31), 'name': 'Squeaky'}]
+# =>  {'breed': 'Winter White', 'dob': datetime.date(2022, 12, 31), 'name': 'Squeaky'}]
 ```
 
 ```py
