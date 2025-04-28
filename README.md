@@ -1,31 +1,6 @@
-# Deserialization : Code-Along
-
-## Learning Goals
-
-- Use the marshmallow library to deserialize an input dictionary to a Python
-  class instance.
-- Filter fields as `load_only` or `dump_only`.
-- Define custom `function` and `method` fields to compute values during
-  serialization.
-
----
-
-## Key Vocab
-
-- **Serialization**: a process to convert programmatic data such as a Python
-  object to a sequence of bytes that can be shared with other programs,
-  computers, or networks.
-- **Deserialization**: the reverse process, converting input data back to
-  programmatic data.
-
----
+# Technical Lesson: Deserialization with Marshmallow
 
 ## Introduction
-
-Serialization is a technique for converting data such as a Python class instance
-to a series of bytes. Deserialization is the reverse process, converting the
-byte stream back to a Python class instance or some other application-level data
-structure.
 
 We've seen how to use the `marshmallow` library to serialize object state using
 the `dump()` or `dumps()` methods, which respectively produce a dictionary and
@@ -33,6 +8,12 @@ JSON-encoded string. In this lesson, we'll use the `load()` and `loads()`
 methods to perform the reverse process of deserialization, creating a Python
 class instance from input data formatted as either a dictionary or a
 JSON-encoded string.
+
+## Tools & Resources
+
+- [GitHub Repo](https://github.com/learn-co-curriculum/flask-sqlalchemy-object-deserialization-technical-lesson)
+- [marshmallow](https://pypi.org/project/marshmallow/)
+- [marshmallow quickstart](https://marshmallow.readthedocs.io/en/stable/quickstart.html)
 
 ## Setup
 
@@ -48,17 +29,15 @@ $ pipenv shell
 
 ---
 
-## Deserialization
+## Instructions
 
-With serialization, we **dump** object state as output data in a format that is
-easy to share such as a dictionary or string. You can view deserialization as
-the reverse, where we **load** input data formatted as a dictionary or string
-into a more complex Python data structure such as a class instance. However,
-before we deserialize to a class instance, we'll first see how to serialize to
-simpler data type such as a dictionary. It may seem odd to deserialize a
-dictionary to a dictionary, but it is the first step in the process.
-Deserialization to an object includes a post-loading step that we'll explore
-later in the lesson.
+### Task 1: Define the Problem
+
+### Task 2: Determine the Design
+
+### Task 3: Develop, Test, and Refine the Code
+
+#### Step 1: Deserialization
 
 Within the `lib` directory, you'll find the file `deserialize.py` that defines a
 marshmallow schema named `HamsterSchema`. The file does not include a hamster
@@ -148,7 +127,7 @@ $ python lib/deserialize.py
  'name': 'Wiggles'}
 ```
 
-## Deserializing a collection
+#### Step 2: Deserializing a collection
 
 A collection can be deserialized by passing `many=True`, either when
 instantiating the schema or as an extra parameter passed to the `load()` or
@@ -189,7 +168,7 @@ pprint(result_4)       # list of dictionaries
 # =>  {'breed': 'White White', 'dob': datetime.date(2022, 12, 31), 'name': 'Squeaky'}]
 ```
 
-### Deserializing to objects (post-load)
+#### Step 3: Deserializing to objects (post-load)
 
 To deserialize to an object, we need to define a method of the schema and
 decorate it with `@post_load`. The method receives a dictionary of deserialized
@@ -325,7 +304,7 @@ dog.give_treat()
 pprint(dog_schema.dumps(dog))   # => '{"name": "Snuggles", "breed": "Beagle", "tail_wagging": true}'
 ```
 
-### Load-only and Dump-Only Fields
+#### Step 4: Load-only and Dump-Only Fields
 
 We may want define fields that are "load-only" (used during deserialization) or
 "dump_only" (used during serialization).
@@ -402,11 +381,7 @@ $ python lib/load_only_dump_only.py
 '{"name": "Lua", "created_at": "2023-11-15T07:30:30.660156"}'
 ```
 
----
-
----
-
-## Custom Fields
+#### Step 5: Custom Fields
 
 You can create a custom field beyond the builtin field types. This is often done
 during serialization to compute a value from other fields. We will look at two
@@ -572,28 +547,9 @@ Now we see `age` and `likes_toys` included in the serialized output:
  'name': 'Whiskers'}
 ```
 
-## Conclusion
+#### Step 6: Verify your Code
 
-This lesson has covered quite a few concepts involving deserialization:
-
-- The schema `load()` method validates and deserializes an input dictionary.
-- The schema `loads()` method validates and deserializes a JSON-encoded string.
-- By default, `load()` and `loads()` return a dictionary of field names mapped
-  to deserialized values.
-- A schema can deserialize a collection by passing the parameter `many=True` to
-  either the schema constructor or the schema loading methods.
-- To deserialize to an object, we decorate a schema method with `@post_load`,
-  and implement the method to take a dictionary of deserialized data and return
-  a model instance from the deserialized data.
-- The parameter `load_only=True` is used to indicate a schema field should be
-  used during deserialization but not serialization, while `dump_only=True`
-  indicates the field should be serialized but not used during deserialization.
-- By default, a field is defined as `load_only=False` and `dump_only=False`,
-  meaning it will be used for both serialization and deserialization.
-- Custom fields can be created using `fields.Function` and `fields.Method`
-  types.
-
-## Solution Code
+Solution Code:
 
 ```py
 # lib/deserialize.py
@@ -795,9 +751,26 @@ pprint(schema.dump(cat_2))
 # => 'name': 'Whiskers'}
 ```
 
----
+#### Step 7: Commit and Push Git History
 
-## Resources
+Commit and push your final code to GitHub.
 
-- [marshmallow](https://pypi.org/project/marshmallow/)
-- [marshmallow quickstart](https://marshmallow.readthedocs.io/en/stable/quickstart.html)
+```bash
+git add .
+git commit -m "final solution"
+git push
+```
+
+If you used a feature branch, remember to open a PR and merge to main.
+
+### Task 4: Document and Maintain
+
+Best Practice documentation steps:
+* Add comments to the code to explain purpose and logic, clarifying intent and functionality of your code to other developers.
+* Update README text to reflect the functionality of the application following https://makeareadme.com. 
+  * Add screenshot of completed work included in Markdown in README.
+* Delete any stale branches on GitHub
+* Remove unnecessary/commented out code
+* If needed, update git ignore to remove sensitive data
+
+## Considerations
