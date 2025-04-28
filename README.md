@@ -9,6 +9,21 @@ methods to perform the reverse process of deserialization, creating a Python
 class instance from input data formatted as either a dictionary or a
 JSON-encoded string.
 
+## Scenario
+
+You’ve just joined the backend team at a small e-commerce platform. Customer and 
+product data often comes in as JSON payloads from the website frontend or 
+third-party integrations. However, your Python application needs to work with 
+Python objects — not raw JSON.
+
+The backend team needs a reliable, validated process to convert incoming JSON or 
+dictionaries into structured, typed Python objects or dictionaries. Your task is 
+to learn how to deserialize external data correctly and safely using Marshmallow.
+
+In production systems, almost all API inputs (e.g., new user signups, order 
+creation) arrive as JSON and must be deserialized before your code can process 
+them.
+
 ## Tools & Resources
 
 - [GitHub Repo](https://github.com/learn-co-curriculum/flask-sqlalchemy-object-deserialization-technical-lesson)
@@ -33,7 +48,47 @@ $ pipenv shell
 
 ### Task 1: Define the Problem
 
+When applications receive data from outside sources (like APIs, forms, or 
+integrations), the data:
+* Is often formatted as a JSON string or a Python dictionary.
+* May be missing required fields or have wrong data types.
+* Cannot be used directly to instantiate Python objects safely.
+
+Problem:
+
+Without a proper system, it’s difficult to trust or use external data because it 
+may not match what your application expects.
+
+Solution:
+
+Use Marshmallow schemas to:
+* Validate incoming data against expected types and structures.
+* Deserialize dictionaries or JSON strings into Python dictionaries or Python objects.
+* Safely integrate external data into your application’s flow.
+
 ### Task 2: Determine the Design
+
+We’ll approach deserialization methodically:
+
+1. Schema Setup:
+    * Define a Schema subclass describing the expected fields and their types.
+2. Data Input:
+    * Accept incoming data as either a dictionary or a JSON string.
+3. Deserialization Methods:
+    * Use:
+        * `load()` for dictionary inputs
+        * `loads()` for JSON string inputs
+4. Result Handling:
+    * Receive a dictionary by default.
+    * Alternatively, configure the schema with @post_load to return a model instance.
+5. Handling Collections:
+    * Use `many=True` if deserializing a list of objects.
+6. Advanced Field Control:
+    * Apply load_only and dump_only for fields that should only appear during deserialization or serialization, respectively.
+    * Add computed fields using fields.Function and fields.Method if needed.
+7. Validation and Error Handling:
+    * Marshmallow automatically checks that types match.
+    * (Error handling will be discussed more deeply in validation-focused lessons.)
 
 ### Task 3: Develop, Test, and Refine the Code
 
@@ -56,6 +111,8 @@ class HamsterSchema(Schema):
      breed = fields.Str()
      dob = fields.Date()
 ```
+
+Schemas are the contract: they tell Marshmallow what input is valid and how to rebuild it.
 
 The `load()` method validates and deserializes an input dictionary to an
 application-level data structure. By default, `load()` returns a dictionary of
@@ -172,7 +229,8 @@ pprint(result_4)       # list of dictionaries
 
 To deserialize to an object, we need to define a method of the schema and
 decorate it with `@post_load`. The method receives a dictionary of deserialized
-data.
+data. This is often the moment when business logic (e.g., auto-setting 
+timestamps, calculating values) is introduced during deserialization.
 
 Open `lib/post_load.py`. The file defines a model class named `Dog`, along a
 schema named `DogSchema`. If you run the current version of the code, the
@@ -774,3 +832,24 @@ Best Practice documentation steps:
 * If needed, update git ignore to remove sensitive data
 
 ## Considerations
+
+When building deserialization logic for real applications, consider:
+
+### Validation First
+Always validate external data before trusting or using it.
+
+### Security
+Restrict deserialization to only the fields your application expects - no extra fields!
+
+### Missing or Incorrect Data
+Be prepared to handle missing required fields or invalid formats gracefully (using Marshmallow’s built-in validation).
+
+### Custom Transformations
+Use @post_load, fields.Function, and fields.Method to enrich or modify the incoming data before using it.
+
+### API Contracts
+Frontend teams will expect consistent field names and types; changes to the schema must be communicated carefully.
+
+### Extensibility
+As your app grows, you can modularize and nest schemas (e.g., an OrderSchema that includes nested UserSchema and ProductSchema).
+
